@@ -16,16 +16,17 @@ package defaultrpc
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/proto"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/liangdas/mqant/rpc/util"
 	"reflect"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	rpcpb "github.com/liangdas/mqant/rpc/pb"
+	argsutil "github.com/liangdas/mqant/rpc/util"
+	"google.golang.org/protobuf/proto"
 )
 
 type RPCServer struct {
@@ -352,6 +353,7 @@ func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, 
 		s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, fmt.Sprintf("%s rpc func(%s) return error %s\n", s.module.GetType(), callInfo.RPCInfo.Fn, "func(....)(result interface{}, err error)"))
 		return
 	}
+	log.Info("xxxxxxxx-xxxx-", rs)
 	argsType, args, err := argsutil.ArgsTypeAnd2Bytes(s.app, rs[0])
 	if err != nil {
 		s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, err.Error())

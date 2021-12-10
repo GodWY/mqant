@@ -16,13 +16,14 @@ package argsutil
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/proto"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/utils"
 	"reflect"
 	"strings"
+
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	mqanttools "github.com/liangdas/mqant/utils"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -100,6 +101,7 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 		}
 
 		rv := reflect.ValueOf(arg)
+		log.Info("ArgsTypeAnd2Bytes to reflect type", reflect.TypeOf(arg))
 		if rv.Kind() != reflect.Ptr {
 			//不是指针
 			return "", nil, fmt.Errorf("Args2Bytes [%v] not registered to app.addrpcserialize(...) structure type or not *mqrpc.marshaler pointer type", reflect.TypeOf(arg))

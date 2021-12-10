@@ -17,11 +17,26 @@ package log
 
 import (
 	beegolog "github.com/liangdas/mqant/log/beego"
-	"github.com/liangdas/mqant/utils"
+	mqanttools "github.com/liangdas/mqant/utils"
 )
 
 var beego *beegolog.BeeLogger
 var bi *beegolog.BeeLogger
+
+// 初始化日志
+func Init(o ...Option) {
+	cc := &Options{}
+	for _, v := range o {
+		v(cc)
+	}
+
+	if cc.useLog {
+		beego = NewLogger(cc, cc.logDir, cc.logSettings)
+	}
+	if cc.useBi {
+		bi = NewLogger(cc, cc.biDir, cc.biSettings)
+	}
+}
 
 // InitLog 初始化日志
 func InitLog(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {

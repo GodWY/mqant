@@ -17,9 +17,10 @@ package module
 
 import (
 	"context"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/rpc"
+	mqrpc "github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/selector"
 	"github.com/nats-io/nats.go"
 )
@@ -102,6 +103,8 @@ type App interface {
 	NewProtocolMarshal(data []byte) ProtocolMarshal
 	GetProcessID() string
 	WorkDir() string
+	// 服务的名字
+	RegisterService(name string)
 }
 
 // Module 基本模块定义

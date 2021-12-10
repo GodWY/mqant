@@ -20,17 +20,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/module/base"
-	"github.com/liangdas/mqant/module/modules"
-	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/selector"
-	"github.com/liangdas/mqant/selector/cache"
-	"github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -39,6 +28,18 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	basemodule "github.com/liangdas/mqant/module/base"
+	"github.com/liangdas/mqant/module/modules"
+	"github.com/liangdas/mqant/registry"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/selector/cache"
+	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 )
 
 type resultInfo struct {
@@ -82,7 +83,6 @@ func newOptions(opts ...module.Option) module.Options {
 		BIdir = flag.String("bi", "", "bi file directory?")
 		flag.Parse() //解析输入的参数
 	}
-
 	if opt.Nats == nil {
 		nc, err := nats.Connect(nats.DefaultURL)
 		if err != nil {
@@ -198,6 +198,8 @@ type DefaultApp struct {
 	startup             func(app module.App)
 	moduleInited        func(app module.App, module module.Module)
 	protocolMarshal     func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)
+	// 服务的名字 不是模块
+	service string
 }
 
 // Run 运行应用
@@ -216,9 +218,21 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	if app.configurationLoaded != nil {
 		app.configurationLoaded(app)
 	}
+	// cof.Log["service"] = app.service
+	// cof.BI["service"] = app.service
+	// log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
+	// log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
 
-	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
-	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
+	log.Init(log.WithBiDir(app.opts.BIDir),
+		log.WithBiSettings(conf.Conf.BI),
+		log.WithProcessId(app.opts.ProcessID),
+		log.WithDebug(app.opts.Debug),
+		log.WithLogDir(app.opts.LogDir),
+		log.WithLogSettings(cof.Log),
+		log.WithService(app.service),
+		log.WithUseBi(true),
+		log.WithUseLog(true),
+	)
 
 	log.Info("mqant %v starting up", app.opts.Version)
 
@@ -559,4 +573,9 @@ func (app *DefaultApp) NewProtocolMarshal(data []byte) module.ProtocolMarshal {
 	return &protocolMarshalImp{
 		data: data,
 	}
+}
+
+// RegisterService 注册服务名字,服务不是模块一个服务可以有多个模块
+func (app *DefaultApp) RegisterService(name string) {
+	app.service = name
 }
