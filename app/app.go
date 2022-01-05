@@ -18,27 +18,26 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/module/base"
-	"github.com/liangdas/mqant/module/modules"
-	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/selector"
-	"github.com/liangdas/mqant/selector/cache"
-	"github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
 	"os"
-	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
+
+	"github.com/liangdas/mqant/module"
+	basemodule "github.com/liangdas/mqant/module/base"
+	"github.com/liangdas/mqant/module/modules"
+	"github.com/liangdas/mqant/registry"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/selector/cache"
+	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 )
 
 type resultInfo struct {
@@ -55,9 +54,8 @@ func (p *protocolMarshalImp) GetData() []byte {
 	return p.data
 }
 
+// newOptions 初始化配置
 func newOptions(opts ...module.Option) module.Options {
-	var wdPath, confPath, Logdir, BIdir *string
-	var ProcessID *string
 	opt := module.Options{
 		Registry:         registry.DefaultRegistry,
 		Selector:         cache.NewSelector(),
@@ -67,109 +65,16 @@ func newOptions(opts ...module.Option) module.Options {
 		RPCExpired:       time.Second * time.Duration(10),
 		RPCMaxCoroutine:  0, //不限制
 		Debug:            true,
-		Parse:            true,
+		// 使用默认的配置
+		AppConf: conf.NewOptions(),
+		Log:     log.DefaultLogger,
 	}
 
 	for _, o := range opts {
 		o(&opt)
 	}
-
-	if opt.Parse {
-		wdPath = flag.String("wd", "", "Server work directory")
-		confPath = flag.String("conf", "", "Server configuration file path")
-		ProcessID = flag.String("pid", "development", "Server ProcessID?")
-		Logdir = flag.String("log", "", "Log file directory?")
-		BIdir = flag.String("bi", "", "bi file directory?")
-		flag.Parse() //解析输入的参数
-	}
-
-	if opt.Nats == nil {
-		nc, err := nats.Connect(nats.DefaultURL)
-		if err != nil {
-			log.Error("nats agent: %s", err.Error())
-			//panic(fmt.Sprintf("nats agent: %s", err.Error()))
-		}
-		opt.Nats = nc
-	}
-
-	if opt.WorkDir == "" {
-		opt.WorkDir = *wdPath
-	}
-	if opt.ProcessID == "" {
-		opt.ProcessID = *ProcessID
-		if opt.ProcessID == "" {
-			opt.ProcessID = "development"
-		}
-	}
-	ApplicationDir := ""
-	if opt.WorkDir != "" {
-		_, err := os.Open(opt.WorkDir)
-		if err != nil {
-			panic(err)
-		}
-		os.Chdir(opt.WorkDir)
-		ApplicationDir, err = os.Getwd()
-	} else {
-		var err error
-		ApplicationDir, err = os.Getwd()
-		if err != nil {
-			file, _ := exec.LookPath(os.Args[0])
-			ApplicationPath, _ := filepath.Abs(file)
-			ApplicationDir, _ = filepath.Split(ApplicationPath)
-		}
-
-	}
-	opt.WorkDir = ApplicationDir
-	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
-	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
-	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
-
-	if opt.ConfPath == "" {
-		if *confPath == "" {
-			opt.ConfPath = defaultConfPath
-		} else {
-			opt.ConfPath = *confPath
-		}
-	}
-
-	if opt.LogDir == "" {
-		if *Logdir == "" {
-			opt.LogDir = defaultLogPath
-		} else {
-			opt.LogDir = *Logdir
-		}
-	}
-
-	if opt.BIDir == "" {
-		if *BIdir == "" {
-			opt.BIDir = defaultBIPath
-		} else {
-			opt.BIDir = *BIdir
-		}
-	}
-
-	_, err := os.Open(opt.ConfPath)
-	if err != nil {
-		//文件不存在
-		panic(fmt.Sprintf("config path error %v", err))
-	}
-	_, err = os.Open(opt.LogDir)
-	if err != nil {
-		//文件不存在
-		err := os.Mkdir(opt.LogDir, os.ModePerm) //
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-
-	_, err = os.Open(opt.BIDir)
-	if err != nil {
-		//文件不存在
-		err := os.Mkdir(opt.BIDir, os.ModePerm) //
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
+	// 注册下框架使用的日志
+	log.RegisterMqantLogger(opt.Log)
 	return opt
 }
 
@@ -202,23 +107,10 @@ type DefaultApp struct {
 
 // Run 运行应用
 func (app *DefaultApp) Run(mods ...module.Module) error {
-	f, err := os.Open(app.opts.ConfPath)
-	if err != nil {
-		//文件不存在
-		panic(fmt.Sprintf("config path error %v", err))
-	}
-	var cof conf.Config
-	fmt.Println("Server configuration path :", app.opts.ConfPath)
-	conf.LoadConfig(f.Name()) //加载配置文件
-	cof = conf.Conf
-	app.Configure(cof) //解析配置信息
-
+	app.LoadLastVesionConfig()
 	if app.configurationLoaded != nil {
 		app.configurationLoaded(app)
 	}
-
-	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
-	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
 
 	log.Info("mqant %v starting up", app.opts.Version)
 
@@ -239,8 +131,7 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
-	log.BiBeego().Flush()
-	log.LogBeego().Flush()
+	log.Flush()
 	//如果一分钟都关不了则强制关闭
 	timeout := time.NewTimer(app.opts.KillWaitTTL)
 	wait := make(chan struct{})
@@ -255,8 +146,7 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	case <-wait:
 		log.Info("mqant closing down (signal: %v)", sig)
 	}
-	log.BiBeego().Close()
-	log.LogBeego().Close()
+	log.Close()
 	return nil
 }
 
@@ -388,7 +278,7 @@ func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSessi
 	sessions := make([]module.ServerSession, 0)
 	services, err := app.opts.Selector.GetService(serviceName)
 	if err != nil {
-		log.Warning("GetServersByType %v", err)
+
 		return sessions
 	}
 	for _, service := range services {
@@ -398,7 +288,6 @@ func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSessi
 			if !ok {
 				s, err := basemodule.NewServerSession(app, serviceName, node)
 				if err != nil {
-					log.Warning("NewServerSession %v", err)
 				} else {
 					app.serverList.Store(node.Id, s)
 					sessions = append(sessions, s)
@@ -441,7 +330,7 @@ func (app *DefaultApp) GetProcessID() string {
 
 // WorkDir 获取进程工作目录
 func (app *DefaultApp) WorkDir() string {
-	return app.opts.WorkDir
+	return ""
 }
 
 // Invoke Invoke
@@ -474,23 +363,6 @@ func (app *DefaultApp) InvokeNR(module module.RPCModule, moduleType string, _fun
 func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _func string, params ...interface{}) (err error) {
 	return app.InvokeNR(module, moduleType, _func, params...)
 }
-
-//func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
-//	server, e := app.GetRouteServer(moduleType)
-//	if e != nil {
-//		err = e.Error()
-//		return
-//	}
-//	return server.CallArgs(nil, _func, ArgsType, args)
-//}
-//
-//func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
-//	server, err := app.GetRouteServer(moduleType)
-//	if err != nil {
-//		return
-//	}
-//	return server.CallNRArgs(_func, ArgsType, args)
-//}
 
 // Call Call
 func (app *DefaultApp) Call(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (result interface{}, errstr string) {
@@ -559,4 +431,21 @@ func (app *DefaultApp) NewProtocolMarshal(data []byte) module.ProtocolMarshal {
 	return &protocolMarshalImp{
 		data: data,
 	}
+}
+
+// LoadLastVesionConfig 加载上个版本的配置
+func (app *DefaultApp) LoadLastVesionConfig() {
+
+	f, err := os.Open(app.opts.ConfPath)
+	var cof conf.Config
+	if err != nil {
+		fmt.Println("xxxxxxx", err.Error())
+		return
+	}
+	conf.LoadConfig(f.Name()) //加载配置文件
+	cof = conf.Conf
+	app.Configure(cof) //解析配置信息
+	// 配置beegologger
+	os.MkdirAll(app.opts.LogDir, os.ModePerm)
+	log.NewLastVersionLogger(app.opts.Debug, "", app.opts.LogDir, app.settings.Log)
 }

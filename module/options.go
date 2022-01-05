@@ -1,12 +1,15 @@
 package module
 
 import (
+	"time"
+
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/logv2"
 	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/rpc/pb"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	rpcpb "github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/selector"
 	"github.com/nats-io/nats.go"
-	"time"
 )
 
 // Option 配置项
@@ -34,6 +37,8 @@ type Options struct {
 	RpcCompleteHandler RpcCompleteHandler
 	RPCExpired         time.Duration
 	RPCMaxCoroutine    int
+	AppConf            *conf.Options
+	Log                logv2.Logger
 }
 
 // ClientRPCHandler 调用方RPC监控
@@ -59,13 +64,6 @@ func Debug(t bool) Option {
 	}
 }
 
-// WorkDir 进程工作目录
-func WorkDir(v string) Option {
-	return func(o *Options) {
-		o.WorkDir = v
-	}
-}
-
 // Configure 配置路径
 func Configure(v string) Option {
 	return func(o *Options) {
@@ -84,13 +82,6 @@ func LogDir(v string) Option {
 func ProcessID(v string) Option {
 	return func(o *Options) {
 		o.ProcessID = v
-	}
-}
-
-// BILogDir  BI日志路径
-func BILogDir(v string) Option {
-	return func(o *Options) {
-		o.BIDir = v
 	}
 }
 
@@ -159,13 +150,6 @@ func SetRpcCompleteHandler(t RpcCompleteHandler) Option {
 	}
 }
 
-// Parse mqant框架是否解析环境参数
-func Parse(t bool) Option {
-	return func(o *Options) {
-		o.Parse = t
-	}
-}
-
 //RPC超时时间
 func RPCExpired(t time.Duration) Option {
 	return func(o *Options) {
@@ -177,5 +161,19 @@ func RPCExpired(t time.Duration) Option {
 func RPCMaxCoroutine(t int) Option {
 	return func(o *Options) {
 		o.RPCMaxCoroutine = t
+	}
+}
+
+// WithAppConf app的应用级配置
+func WithAppConf(cc ...conf.Option) Option {
+	return func(o *Options) {
+		o.AppConf = conf.ApplyOptions(cc...)
+	}
+}
+
+// logger 实例
+func WithLoggerSingle(ll logv2.Logger) Option {
+	return func(o *Options) {
+		o.Log = ll
 	}
 }

@@ -18,8 +18,13 @@ package log
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/liangdas/mqant/log/beego"
+	"os"
+	"strconv"
+
+	logs "github.com/liangdas/mqant/log/beego"
 )
+
+var ProcesID = strconv.Itoa(os.Getpid())
 
 //NewBeegoLogger beego
 func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) *logs.BeeLogger {
@@ -112,4 +117,24 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 		log.SetLogger(logs.AdapterEs, string(config))
 	}
 	return log
+}
+
+func NewBeegoLoggerV2(adapter BeegoWay, cc *Options) *logs.BeeLogger {
+	lg := logs.NewLogger()
+	lg.ProcessID = ProcesID
+	lg.EnableFuncCallDepth(true)
+	lg.Async(1024) //同步打印,可能影响性能
+	lg.SetLogFuncCallDepth(4)
+	lg.SetLogger(String(adapter), buildAdapter(cc))
+	lg.SetContentType("application/json")
+	return lg
+}
+
+// buildAdapter 构造适配器
+func buildAdapter(o *Options) string {
+	conf, err := json.Marshal(o)
+	if err != nil {
+		return ""
+	}
+	return string(conf)
 }
