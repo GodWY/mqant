@@ -147,18 +147,18 @@ func (s *NatsServer) on_request_handle() (err error) {
 				//订阅已关闭，需要重新订阅
 				s.subs, err = s.app.Transport().SubscribeSync(s.addr)
 				if err != nil {
-					log.Error("NatsServer SubscribeSync[1] error with '%v'", err)
+					// log.Error("NatsServer SubscribeSync[1] error with '%v'", err)
 					continue
 				}
 			}
 			continue
 		} else if err != nil {
-			log.Warning("NatsServer error with '%v'", err)
+			// log.Warning("NatsServer error with '%v'", err)
 			if !s.subs.IsValid() {
 				//订阅已关闭，需要重新订阅
 				s.subs, err = s.app.Transport().SubscribeSync(s.addr)
 				if err != nil {
-					log.Error("NatsServer SubscribeSync[2] error with '%v'", err)
+					// log.Error("NatsServer SubscribeSync[2] error with '%v'", err)
 					continue
 				}
 			}

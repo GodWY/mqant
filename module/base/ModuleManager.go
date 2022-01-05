@@ -17,6 +17,7 @@ package basemodule
 
 import (
 	"fmt"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
@@ -59,19 +60,19 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 	mer.app = app
 	mer.CheckModuleSettings() //配置文件规则检查
 	for i := 0; i < len(mer.mods); i++ {
-		for Type, modSettings := range app.GetSettings().Module {
-			if mer.mods[i].mi.GetType() == Type {
-				//匹配
-				for _, setting := range modSettings {
-					//这里可能有BUG 公网IP和局域网IP处理方式可能不一样,先不管
-					if ProcessID == setting.ProcessID {
-						mer.runMods = append(mer.runMods, mer.mods[i]) //这里加入能够运行的组件
-						mer.mods[i].settings = setting
-					}
-				}
-				break //跳出内部循环
-			}
-		}
+		// for Type, modSettings := range app.GetSettings().Module {
+		// 	if mer.mods[i].mi.GetType() == Type {
+		// 		//匹配
+		// 		for _, setting := range modSettings {
+		// 			//这里可能有BUG 公网IP和局域网IP处理方式可能不一样,先不管
+		// 			if ProcessID == setting.ProcessID {
+		mer.runMods = append(mer.runMods, mer.mods[i]) //这里加入能够运行的组件
+		// mer.mods[i].settings = setting
+		// 			}
+		// 		}
+		// 		break //跳出内部循环
+		// 	}
+		// }
 	}
 
 	for i := 0; i < len(mer.runMods); i++ {
