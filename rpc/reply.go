@@ -3,9 +3,10 @@ package mqrpc
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"reflect"
 	"strconv"
+
+	"github.com/golang/protobuf/proto"
 )
 
 // ErrNil ErrNil

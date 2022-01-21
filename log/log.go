@@ -22,6 +22,7 @@ import (
 
 	beegolog "github.com/liangdas/mqant/log/beego"
 	"github.com/liangdas/mqant/logv2"
+	mqanttools "github.com/liangdas/mqant/utils"
 )
 
 var hostname, _ = os.Hostname()
@@ -39,7 +40,7 @@ func newDefaultBeegoLogger(debug bool, o ...Option) logv2.Logger {
 		cc = NewOptions()
 	}
 	defaultLogger := &beegoLogger{
-		NewBeegoLoggerV2(File, cc),
+		NewBeegoLoggerV2(Console, cc),
 	}
 	return logv2.With(defaultLogger)
 }
@@ -54,7 +55,7 @@ func NewLogger(debug bool, o ...Option) logv2.Logger {
 		cc = NewOptions()
 	}
 	defaultLogger := &beegoLogger{
-		NewBeegoLoggerV2(File, cc),
+		NewBeegoLoggerV2(Console, cc),
 	}
 	return logv2.With(defaultLogger)
 }
@@ -120,23 +121,60 @@ func Warning(format string, a ...interface{}) {
 	beeLogger.Log(logv2.LevelWarn, "", "", "mqant", x)
 }
 
+// CreateRootTrace CreateRootTrace
+func CreateRootTrace() TraceSpan {
+	return &TraceSpanImp{
+		Trace: mqanttools.GenerateID().String(),
+		Span:  mqanttools.GenerateID().String(),
+	}
+}
+
+// BiReport BiReport
+func BiReport(msg string) {
+	// TODO
+}
+
+// TDebug TDebug
+func TDebug(span TraceSpan, format string, a ...interface{}) {
+	x := fmt.Sprintf(format, a...)
+	if beeLogger == nil {
+		beeLogger = newDefaultBeegoLogger(false)
+	}
+	beeLogger.Log(logv2.LevelWarn, "", "", "mqant", x)
+}
+
+// TInfo TInfo
+func TInfo(span TraceSpan, format string, a ...interface{}) {
+	x := fmt.Sprintf(format, a...)
+	if beeLogger == nil {
+		beeLogger = newDefaultBeegoLogger(false)
+	}
+	beeLogger.Log(logv2.LevelInfo, span.SpanId(), span.TraceId(), "mqant", x)
+}
+
+// TError TError
+func TError(span TraceSpan, format string, a ...interface{}) {
+	x := fmt.Sprintf(format, a...)
+	if beeLogger == nil {
+		beeLogger = newDefaultBeegoLogger(false)
+	}
+	beeLogger.Log(logv2.LevelError, span.SpanId(), span.TraceId(), "mqant", x)
+}
+
+// TWarning TWarning
+func TWarning(span TraceSpan, format string, a ...interface{}) {
+	x := fmt.Sprintf(format, a...)
+	if beeLogger == nil {
+		beeLogger = newDefaultBeegoLogger(false)
+	}
+	beeLogger.Log(logv2.LevelWarn, span.SpanId(), span.TraceId(), "mqant", x)
+}
+
 // Flush() 刷新日志
 func Flush() {
 	if beeLogger != nil {
 		beeLogger.Flush()
 	}
-}
-
-// TInfo TInfo
-func TInfo(span TraceSpan, format string, a ...interface{}) {
-	var spanId, traceId string
-	x := fmt.Sprintf(format, a...)
-	if span != nil {
-		spanId = span.SpanId()
-		traceId = span.TraceId()
-	}
-	LogBeego().Log(logv2.LevelInfo,
-		spanId, traceId, x)
 }
 
 // Close Close

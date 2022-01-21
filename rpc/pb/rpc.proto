@@ -1,5 +1,8 @@
 syntax = "proto3";
 package rpcpb;
+
+option go_package = "github.com/liangdas/mqant/rpc";
+
 message RPCInfo {
     string Cid = 1;
     string Fn = 2;
