@@ -119,13 +119,13 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 	return log
 }
 
-func NewBeegoLoggerV2(adapter BeegoWay, cc *Options) *logs.BeeLogger {
+func NewBeegoLoggerV2(cc *Options) *logs.BeeLogger {
 	lg := logs.NewLogger()
 	lg.ProcessID = ProcesID
 	lg.EnableFuncCallDepth(true)
 	lg.Async(1024) //同步打印,可能影响性能
 	lg.SetLogFuncCallDepth(4)
-	lg.SetLogger(String(adapter), buildAdapter(cc))
+	lg.SetLogger(String(cc.FileWay), buildAdapter(cc))
 	lg.SetContentType("application/json")
 	return lg
 }

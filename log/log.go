@@ -40,7 +40,7 @@ func newDefaultBeegoLogger(debug bool, o ...Option) logv2.Logger {
 		cc = NewOptions()
 	}
 	defaultLogger := &beegoLogger{
-		NewBeegoLoggerV2(Console, cc),
+		NewBeegoLoggerV2(cc),
 	}
 	return logv2.With(defaultLogger)
 }
@@ -55,7 +55,7 @@ func NewLogger(debug bool, o ...Option) logv2.Logger {
 		cc = NewOptions()
 	}
 	defaultLogger := &beegoLogger{
-		NewBeegoLoggerV2(Console, cc),
+		NewBeegoLoggerV2(cc),
 	}
 	return logv2.With(defaultLogger)
 }
@@ -96,7 +96,7 @@ func Info(format string, a ...interface{}) {
 	if beeLogger == nil {
 		beeLogger = newDefaultBeegoLogger(false)
 	}
-	beeLogger.Log(logv2.LevelInfo, "", "", "mqant", x)
+	beeLogger.Log(logv2.LevelInfo, "", "", "mqant:%v", x)
 }
 
 // Error Error
@@ -107,7 +107,7 @@ func Error(format string, a ...interface{}) {
 	if beeLogger == nil {
 		beeLogger = newDefaultBeegoLogger(false)
 	}
-	beeLogger.Log(logv2.LevelError, "", "", "mqant", x)
+	beeLogger.Log(logv2.LevelError, "", "", "mqant:%v", x)
 }
 
 // Warning Warning
@@ -118,7 +118,7 @@ func Warning(format string, a ...interface{}) {
 	if beeLogger == nil {
 		beeLogger = newDefaultBeegoLogger(false)
 	}
-	beeLogger.Log(logv2.LevelWarn, "", "", "mqant", x)
+	beeLogger.Log(logv2.LevelWarn, "", "", "mqant:%v", x)
 }
 
 // CreateRootTrace CreateRootTrace
@@ -140,7 +140,7 @@ func TDebug(span TraceSpan, format string, a ...interface{}) {
 	if beeLogger == nil {
 		beeLogger = newDefaultBeegoLogger(false)
 	}
-	beeLogger.Log(logv2.LevelWarn, "", "", "mqant", x)
+	beeLogger.Log(logv2.LevelWarn, "", "", "mqant:%v", x)
 }
 
 // TInfo TInfo
@@ -149,7 +149,7 @@ func TInfo(span TraceSpan, format string, a ...interface{}) {
 	if beeLogger == nil {
 		beeLogger = newDefaultBeegoLogger(false)
 	}
-	beeLogger.Log(logv2.LevelInfo, span.SpanId(), span.TraceId(), "mqant", x)
+	beeLogger.Log(logv2.LevelInfo, span.SpanId(), span.TraceId(), "mqant:%v", x)
 }
 
 // TError TError
@@ -158,7 +158,7 @@ func TError(span TraceSpan, format string, a ...interface{}) {
 	if beeLogger == nil {
 		beeLogger = newDefaultBeegoLogger(false)
 	}
-	beeLogger.Log(logv2.LevelError, span.SpanId(), span.TraceId(), "mqant", x)
+	beeLogger.Log(logv2.LevelError, span.SpanId(), span.TraceId(), "mqant:%v", x)
 }
 
 // TWarning TWarning
@@ -167,7 +167,7 @@ func TWarning(span TraceSpan, format string, a ...interface{}) {
 	if beeLogger == nil {
 		beeLogger = newDefaultBeegoLogger(false)
 	}
-	beeLogger.Log(logv2.LevelWarn, span.SpanId(), span.TraceId(), "mqant", x)
+	beeLogger.Log(logv2.LevelWarn, span.SpanId(), span.TraceId(), "mqant:%v", x)
 }
 
 // Flush() 刷新日志
